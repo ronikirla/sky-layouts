@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FloorLayout Explorer — Sky Dungeons</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --panel:#fff; --ink:#1c2733; --muted:#66727f;
+    --line:#d9dee5; --accent:#2563eb; --head:#eef1f5;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  header{ padding:16px 22px 12px; background:var(--panel); border-bottom:1px solid var(--line); }
+  header .top{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  h1{ margin:0; font-size:19px; letter-spacing:.2px; }
+  .sub{ color:var(--muted); font-size:12.5px; }
+  .tabs{ display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; margin-top:12px; }
+  .tab{ padding:7px 22px; border:none; background:#e8ecf1; cursor:pointer; font-size:13.5px; color:var(--ink); }
+  .tab + .tab{ border-left:1px solid var(--line); }
+  .tab.active{ background:var(--accent); color:#fff; font-weight:600; }
+  main{ padding:0; }
+
+  /* ---------- table tab ---------- */
+  .toolbar{ display:flex; align-items:center; gap:16px; padding:12px 18px 10px; flex-wrap:wrap; }
+  .hint{ color:var(--muted); font-size:12px; }
+  button.ghost{
+    border:1px solid var(--line); background:#fff; border-radius:8px;
+    padding:6px 14px; font-size:12.5px; cursor:pointer; color:var(--ink);
+  }
+  button.ghost:hover{ border-color:#b7c2cf; background:#f2f6fa; }
+  .table-wrap{
+    margin:0 18px 26px; max-height:calc(100vh - 190px); overflow:auto;
+    border:1px solid var(--line); border-radius:10px; background:#fff;
+  }
+  table{ border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:12.5px; }
+  th,td{ padding:3px 10px; white-space:nowrap; border-bottom:1px solid #edf0f3; text-align:right; }
+  td.num{ font-variant-numeric:tabular-nums; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+  th.c-text, td.c-text{ text-align:left; }
+  thead th{ position:sticky; background:var(--head); z-index:2; user-select:none; }
+  tr.group-row th{
+    top:0; height:27px; font-size:10.5px; letter-spacing:.6px; text-transform:uppercase;
+    color:#4b5a6b; border-bottom:1px solid var(--line); text-align:center; cursor:default;
+  }
+  tr.group-row th.g-df{ background:#e7ecf3; }
+  tr.group-row th.g-fl{ background:#e4edfb; }
+  tr.group-row th.g-gen{ background:#e6f2e9; }
+  tr.group-row th.g-cha{ background:#fbf1dd; }
+  tr.group-row th.g-ter{ background:#f2e9f6; }
+  tr.group-row th.g-mis{ background:#f9e8e6; }
+  tr.head-row th{ top:27px; height:32px; font-size:11.5px; font-weight:600; cursor:pointer; }
+  tr.head-row th:hover{ background:#dfe7f1; }
+  tr.head-row th .sort-ic{ color:var(--accent); font-size:10px; margin-left:3px; }
+  tbody tr{ background:#fff; }
+  tbody tr:nth-child(even){ background:#f7f9fb; }
+  tbody tr:hover{ background:#e8f0fe; }
+  th.stick{ position:sticky; z-index:3; background:var(--head); }
+  td.stick{ position:sticky; background:inherit; z-index:1; }
+  tr.group-row th.gcol0{ position:sticky; left:0; z-index:3; }
+  .col0{ left:0; width:86px; min-width:86px; max-width:86px; }
+  .col1{ left:86px; width:215px; min-width:215px; max-width:215px; }
+  .col2{ left:301px; width:58px; min-width:58px; max-width:58px; border-right:2px solid #cfd8e3; }
+
+  /* ---------- visualization tab ---------- */
+  .viz-layout{ display:flex; gap:14px; padding:12px 18px 26px; align-items:flex-start; }
+  .chart-wrap{
+    position:relative; flex:1; min-width:0; background:#fff;
+    border:1px solid var(--line); border-radius:10px; overflow:hidden;
+  }
+  #chart{ display:block; }
+  #overlay{ position:absolute; left:0; top:0; }
+  #tooltip{
+    position:absolute; z-index:10; pointer-events:none;
+    background:rgba(255,255,255,.97); border:1px solid var(--line); border-radius:8px;
+    box-shadow:0 6px 24px rgba(15,23,42,.14); padding:8px 11px;
+    font-size:11.5px; max-width:300px; max-height:430px; overflow:auto;
+  }
+  #tooltip .tt-title{ font-weight:700; font-size:12px; margin-bottom:1px; }
+  #tooltip .tt-title span{ font-weight:500; color:var(--muted); }
+  #tooltip .tt-sub{ color:var(--muted); font-size:10.5px; margin-bottom:5px; }
+  #tooltip .tt-row{ display:flex; align-items:center; gap:6px; line-height:1.55; }
+  #tooltip .tt-row .sw{ width:9px; height:9px; border-radius:2px; flex:none; }
+  #tooltip .tt-row .k{ color:#42505f; }
+  #tooltip .tt-row .v{ margin-left:auto; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; }
+  .legend-panel{
+    width:322px; flex:none; background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:12px 13px; max-height:calc(100vh - 175px); overflow:auto;
+  }
+  .legend-panel h3{
+    margin:12px 0 6px; font-size:10.5px; letter-spacing:.6px; text-transform:uppercase;
+    color:#4b5a6b; font-weight:700;
+  }
+  .legend-panel h3 .ax-hint{ text-transform:none; letter-spacing:0; color:#8a97a5; font-weight:500; }
+  .legend-actions{ display:flex; gap:8px; margin:2px 0 4px; }
+  .legend-actions button{
+    border:1px solid var(--line); background:#fff; border-radius:8px;
+    padding:5px 12px; font-size:11.5px; cursor:pointer;
+  }
+  .legend-actions button:hover{ background:#f2f6fa; }
+  .legend{ display:flex; flex-wrap:wrap; gap:4px; }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line);
+    border-radius:999px; padding:3px 10px; font-size:11px; cursor:pointer;
+    user-select:none; background:#fff; color:#5a6673;
+  }
+  .chip:hover{ border-color:#b7c2cf; }
+  .chip.on{ background:#eaf2ff; border-color:#b9d2fb; color:#123; font-weight:600; }
+  .chip .sw{ width:10px; height:10px; border-radius:3px; flex:none; }
+  .strip-keys{
+    display:flex; flex-wrap:wrap; gap:18px; padding:10px 18px 0; font-size:11px; color:#42505f;
+  }
+  .sk-group{ display:flex; align-items:center; flex-wrap:wrap; gap:5px; max-width:720px; }
+  .sk-group b{ font-size:11px; }
+  .sk-chip{ display:inline-flex; align-items:center; gap:5px; }
+  .sk-chip .sw{ width:10px; height:10px; border-radius:2px; }
+
+  /* ---------- dungeon filter ---------- */
+  .top .filter-wrap{ position:relative; margin-left:auto; }
+  .filter-pop{
+    position:absolute; right:0; top:calc(100% + 8px); z-index:50; width:320px;
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 12px 32px rgba(15,23,42,.16); padding:12px;
+  }
+  .filter-pop input[type=search]{
+    width:100%; padding:7px 10px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;
+  }
+  .filter-actions{ display:flex; gap:8px; margin:10px 0 8px; }
+  .filter-list{ max-height:340px; overflow:auto; display:flex; flex-direction:column; gap:2px; }
+  .filter-item{
+    display:flex; align-items:center; gap:8px; padding:4px 6px; border-radius:6px;
+    font-size:12.5px; cursor:pointer;
+  }
+  .filter-item:hover{ background:#f2f6fa; }
+  .filter-item .nm{ flex:1; }
+  .filter-item .ct{ color:var(--muted); font-size:11px; }
+
+  /* ---------- zoom & x-axis scrollbar ---------- */
+  .viz-main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .zoom-bar{ display:flex; align-items:center; gap:10px; padding:0 2px 8px; }
+  .zoom-bar .spacer{ flex:1; }
+  #xscroll{
+    height:14px; overflow-x:scroll; overflow-y:hidden; margin:8px 2px 0;
+    border:1px solid var(--line); border-radius:7px; background:#fff;
+  }
+  #xscroll-inner{ height:1px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>FloorLayout Explorer</h1>
+    <div class="sub" id="stats"></div>
+    <div class="filter-wrap">
+      <button class="ghost" id="dungeon-filter-btn">Dungeons: <b id="dungeon-filter-count">&hellip;</b></button>
+      <div class="filter-pop" id="dungeon-filter-pop" hidden>
+        <input type="search" id="dungeon-search" placeholder="Search dungeons&hellip;">
+        <div class="filter-actions">
+          <button class="ghost" id="dungeon-all">All</button>
+          <button class="ghost" id="dungeon-none">None</button>
+        </div>
+        <div class="filter-list" id="dungeon-list"></div>
+      </div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button id="tab-table" class="tab active">Table</button>
+    <button id="tab-viz" class="tab">Visualization</button>
+  </nav>
+</header>
+<main>
+  <section id="panel-table">
+    <div class="toolbar">
+      <button class="ghost" id="reset-sort">Natural order</button>
+      <span class="hint">Click a column header to sort &middot; click again for descending &middot; shift+click adds secondary sort keys</span>
+      <span class="hint" id="sort-status"></span>
+    </div>
+    <div class="table-wrap" id="table-wrap">
+      <table id="floor-table">
+        <thead>
+          <tr class="group-row" id="group-row"></tr>
+          <tr class="head-row" id="head-row"></tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="panel-viz" hidden>
+    <div class="viz-layout">
+      <div class="viz-main">
+        <div class="zoom-bar">
+          <span class="hint">Scroll to zoom &middot; drag to pan &middot; double-click to fit</span>
+          <span class="spacer"></span>
+          <button class="ghost" id="zoom-out">&minus;</button>
+          <button class="ghost" id="zoom-in">+</button>
+          <button class="ghost" id="zoom-fit">Fit</button>
+          <span class="hint" id="zoom-range"></span>
+        </div>
+        <div class="chart-wrap" id="chart-wrap">
+          <canvas id="chart"></canvas>
+          <canvas id="overlay"></canvas>
+          <div id="tooltip" hidden></div>
+        </div>
+        <div id="xscroll"><div id="xscroll-inner"></div></div>
+      </div>
+      <aside class="legend-panel">
+        <div class="legend-actions">
+          <button id="btn-all">All lines</button>
+          <button id="btn-none">No lines</button>
+          <button id="btn-default">Defaults</button>
+        </div>
+        <h3>Lines &mdash; left axis <span class="ax-hint">(shared, 0&ndash;100)</span></h3>
+        <div class="legend" id="legend-left"></div>
+        <h3>Lines &mdash; right axis <span class="ax-hint">(large values)</span></h3>
+        <div class="legend" id="legend-right"></div>
+        <h3>Color strips &mdash; below chart</h3>
+        <div class="legend" id="legend-strips"></div>
+      </aside>
+    </div>
+    <div class="strip-keys" id="strip-keys"></div>
+  </section>
+</main>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
